@@ -127,8 +127,17 @@ function lang() {
 function lang_enumerate ($list) {
   global $lang_str;
 
-  if (sizeof($list) > 1) {
-    return implode($lang_str['enumerate_join'], array_slice($list, 0, -1)) . $lang_str['enumerate_last'] . end($list);
+  if (sizeof($list) > 2) {
+    $result = strtr($lang_str['enumerate_start'], array('{0}' => $list[0], '{1}' => $list[1]));
+
+    for ($i = 2; $i < sizeof($list) - 1; $i++) {
+      $result = strtr($lang_str['enumerate_middle'], array('{0}' => $result, '{1}' => $list[$i]));
+    }
+
+    return strtr($lang_str['enumerate_end'], array('{0}' => $result, '{1}' => $list[sizeof($list) - 1]));
+  }
+  else if (sizeof($list) == 2) {
+    return strtr($lang_str['enumerate_2'], array('{0}' => $list[0], '{1}' => $list[1]));
   }
   else if (sizeof($list) > 0) {
     return $list[0];
@@ -189,9 +198,21 @@ function lang_file_load_json($file) {
   $strs = json_decode(file_get_contents($file), true);
 
   foreach($strs as $k=>$v) {
+    if (is_array($v) && array_key_exists('description', $v)) {
+      unset($v['description']);
+    }
+
     // if no 'message' => not translated, therefore ignore
-    if((is_string($v) && $v !== "") || (array_key_exists('message', $v))) {
+    if(is_string($v) && $v !== "") {
       $lang_str[$k] = $v;
+    }
+
+    if (is_array($v) && (array_key_exists('message', $v) && $v['message'] !== "")) {
+      if (sizeof($v) === 1) { // when only message present, compact to string
+        $lang_str[$k] = $v['message'];
+      } else {
+        $lang_str[$k] = $v;
+      }
     }
   }
 }
